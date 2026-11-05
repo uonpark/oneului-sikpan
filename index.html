@@ -7,11 +7,69 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="card">
-    <h1>오늘의 식판</h1>
-    <p>급식실에서 식판을 채우며 배우는 영양소 학습 게임</p>
-    <p id="status"></p>
+  <main class="game">
+    <!-- 화면 1: 식판 담기 -->
+    <section id="screen-tray">
+      <div class="counter-label">배식대</div>
+      <div id="counter" class="counter"></div>
+
+      <div class="tray-area">
+        <div>
+          <div id="tray" class="tray"></div>
+          <div id="scoop" class="scoop">
+            <span id="scoop-name"></span>
+            <button id="scoop-minus" class="small" aria-label="양 줄이기">−</button>
+            <strong id="scoop-amount"></strong>
+            <button id="scoop-plus" class="small" aria-label="양 늘리기">+</button>
+          </div>
+        </div>
+
+        <aside class="side">
+          <div class="box">
+            <h2>미션 (쉬움)</h2>
+            <p>점심 한 끼를 하루 기준의 3분의 1에 맞춰 채워 보자!</p>
+          </div>
+          <p class="speech">👩‍🍳 음식을 끌어다 식판에 놓아 봐. 첫 판은 영양소가 가려져 있어요!</p>
+          <button id="done" class="primary" disabled>다 담았어요</button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 화면 2: 예측하기 -->
+    <section id="screen-predict" class="center" hidden>
+      <h1>예측해 보세요!</h1>
+      <p><strong>이 식판에서 가장 부족한 영양소는 무엇일까요?</strong></p>
+      <div id="tray-summary" class="summary"></div>
+      <div id="choices" class="choices"></div>
+      <p class="note">고르기 전에는 결과가 열리지 않아요.</p>
+      <button id="show-result" class="primary" disabled>결과 보기</button>
+    </section>
+
+    <!-- 화면 3: 결과 확인 -->
+    <section id="screen-result" hidden>
+      <h1 class="center">결과</h1>
+      <div class="donuts">
+        <figure><div id="donut-mine" class="donut"></div><figcaption>내 식판</figcaption></figure>
+        <figure><div id="donut-ideal" class="donut"></div><figcaption>이상적 비율</figcaption></figure>
+        <ul class="legend">
+          <li><i class="dot carb"></i>탄수화물</li>
+          <li><i class="dot protein"></i>단백질</li>
+          <li><i class="dot fat"></i>지방</li>
+        </ul>
+      </div>
+      <div id="gauges"></div>
+      <p id="prediction-result" class="box"></p>
+      <p id="result-speech" class="speech"></p>
+      <div class="actions">
+        <button id="fix" class="primary">고치러 가기</button>
+        <button id="finish">끝내기</button>
+      </div>
+    </section>
+
+    <p class="note temp-note">임시 영양값으로 동작 중이에요. 실제 수업 전에 교체해야 해요.</p>
   </main>
+
+  <script src="data.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
