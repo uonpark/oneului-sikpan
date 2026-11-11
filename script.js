@@ -227,26 +227,42 @@ function renderChoices() {
 
 function donutStyle(ratio) {
   const proteinEnd = ratio.carb + ratio.protein;
-  return `conic-gradient(var(--gold) 0 ${ratio.carb}%, var(--hot-pink) 0 ${proteinEnd}%, var(--orange) 0 100%)`;
+  return `conic-gradient(var(--carb) 0 ${ratio.carb}%, var(--protein) 0 ${proteinEnd}%, var(--fat) 0 100%)`;
+}
+
+function renderRatioRows(mine) {
+  const rows = [
+    { key: "carb", label: "탄수화물" },
+    { key: "protein", label: "단백질" },
+    { key: "fat", label: "지방" },
+  ];
+  $("ratio-rows").replaceChildren(
+    ...rows.map(({ key, label }) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td><i class="dot ${key}"></i>${label}</td><td>${Math.round(mine[key])}%</td><td>${idealRatio[key]}%</td>`;
+      return tr;
+    })
+  );
 }
 
 function renderGauges(total) {
   const gauges = [
-    { label: "에너지 공급", rate: achievement(total, "energy"), color: "var(--gold)" },
+    { label: "에너지 공급", nutrients: "탄수화물 · 단백질 · 지방", rate: achievement(total, "energy"), color: "var(--gold)" },
     {
       label: "몸의 조직 구성",
+      nutrients: "단백질 · 무기질(칼슘)",
       // 한쪽이 넘쳐도 다른 쪽의 부족을 가리지 않도록 각각 100%까지만 셉니다.
       rate: (Math.min(achievement(total, "protein"), 1) + Math.min(achievement(total, "calcium"), 1)) / 2,
       color: "#8e6be8",
     },
-    { label: "생리 기능 조절", rate: achievement(total, "vitaminC"), color: "var(--green)" },
+    { label: "생리 기능 조절", nutrients: "비타민(비타민 C)", rate: achievement(total, "vitaminC"), color: "var(--green)" },
   ];
 
   $("gauges").replaceChildren(
-    ...gauges.map(({ label, rate, color }) => {
+    ...gauges.map(({ label, nutrients, rate, color }) => {
       const row = document.createElement("div");
       row.className = "gauge";
-      row.innerHTML = `<span>${label}</span>
+      row.innerHTML = `<span class="gauge-name">${label}<small>${nutrients}</small></span>
         <div class="bar"><div class="fill" style="width:${Math.min(rate, 1) * 100}%;background:${color}"></div></div>
         <span>${gaugeStatus(rate)}</span>`;
       return row;
@@ -260,8 +276,10 @@ function showResult() {
   const predicted = nutrientChoices.find((choice) => choice.id === prediction);
   const correct = predicted.id === lowest.id;
 
-  $("donut-mine").style.background = donutStyle(energyRatio(total));
+  const mine = energyRatio(total);
+  $("donut-mine").style.background = donutStyle(mine);
   $("donut-ideal").style.background = donutStyle(idealRatio);
+  renderRatioRows(mine);
   renderGauges(total);
 
   $("prediction-result").textContent =

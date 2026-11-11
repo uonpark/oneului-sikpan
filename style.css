@@ -22,6 +22,10 @@
   --orange: #f2a250;
   --gold: #f9d55c;
   --gray: #e8ebf3;
+  /* 3대 영양소 색: 서로 확실히 구분되는 노랑 · 분홍 · 파랑 */
+  --carb: #f9c834;
+  --protein: #ee5a96;
+  --fat: #3f86e0;
 }
 
 * {
@@ -36,6 +40,7 @@ body {
   min-height: 100vh;
   margin: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* 배식대 안의 숨은 음식 폭 때문에 화면이 밀리지 않게 */
   place-items: center;
   padding: 24px;
   color: var(--navy);
@@ -569,20 +574,51 @@ button.big:hover {
 }
 
 .dot.carb {
-  background: var(--gold);
+  background: var(--carb);
 }
 
 .dot.protein {
-  background: var(--hot-pink);
+  background: var(--protein);
 }
 
 .dot.fat {
-  background: var(--orange);
+  background: var(--fat);
+}
+
+.donut {
+  border: 3px solid var(--navy);
+}
+
+.ratio-table {
+  border-collapse: collapse;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 15px;
+}
+
+.ratio-table th,
+.ratio-table td {
+  padding: 4px 10px;
+  text-align: right;
+  border-bottom: 2px solid var(--gray);
+}
+
+.ratio-table th:first-child,
+.ratio-table td:first-child {
+  text-align: left;
+}
+
+.gauge-name small {
+  display: block;
+  margin-top: 2px;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  opacity: 0.8;
 }
 
 .gauge {
   display: grid;
-  grid-template-columns: 130px 1fr 80px;
+  grid-template-columns: 190px 1fr 80px;
   align-items: center;
   gap: 12px;
   margin: 8px 0;

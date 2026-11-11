@@ -92,11 +92,12 @@
       <div class="donuts">
         <figure><div id="donut-mine" class="donut"></div><figcaption>내 식판</figcaption></figure>
         <figure><div id="donut-ideal" class="donut"></div><figcaption>이상적 비율</figcaption></figure>
-        <ul class="legend">
-          <li><i class="dot carb"></i>탄수화물</li>
-          <li><i class="dot protein"></i>단백질</li>
-          <li><i class="dot fat"></i>지방</li>
-        </ul>
+        <table class="ratio-table">
+          <thead>
+            <tr><th>에너지 비율</th><th>내 식판</th><th>이상적</th></tr>
+          </thead>
+          <tbody id="ratio-rows"></tbody>
+        </table>
       </div>
       <div id="gauges"></div>
       <p id="prediction-result" class="box"></p>
