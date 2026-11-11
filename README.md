@@ -9,3 +9,7 @@
 ## 게임 흐름
 
 난이도 고르기 → 식판 담기 → 양 조절 → 예측하기 → 결과 확인
+
+## 사용한 자료
+
+- 글꼴: [갈무리(Galmuri)](https://github.com/quiple/galmuri), SIL Open Font License 1.1 (`fonts/OFL.md`)

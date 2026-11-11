@@ -1,3 +1,17 @@
+@font-face {
+  font-family: "Galmuri11";
+  src: url("fonts/Galmuri11.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galmuri11";
+  src: url("fonts/Galmuri11-Bold.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
 :root {
   --navy: #2b2a6b;
   --pink: #f5c6dc;
@@ -25,8 +39,10 @@ body {
   place-items: center;
   padding: 24px;
   color: var(--navy);
-  font-family: system-ui, -apple-system, "Apple SD Gothic Neo", sans-serif;
+  font-family: "Galmuri11", "Apple SD Gothic Neo", sans-serif;
   background: repeating-conic-gradient(var(--pink) 0 25%, var(--yellow) 0 50%) 0 0 / 120px 120px;
+  word-break: keep-all; /* 한글 단어 중간에서 줄이 바뀌지 않게 */
+  overflow-wrap: break-word;
 }
 
 .game {
@@ -100,28 +116,265 @@ button.small {
   border: 3px solid var(--navy);
 }
 
+/* 시작 화면 */
+.start {
+  display: grid;
+  grid-template-columns: 1fr 240px;
+  align-items: center;
+  gap: 32px;
+  padding: 8px 16px;
+}
+
+.start h1 {
+  font-size: 60px;
+  text-shadow: 4px 4px 0 #cdd3ee;
+}
+
+.tag {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 4px 12px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--hot-pink);
+  border: 2px solid var(--navy);
+}
+
+.mission {
+  margin-top: 16px;
+  background: #fff;
+  border: 3px solid var(--navy);
+  box-shadow: 5px 5px 0 var(--navy);
+}
+
+.mission-title {
+  margin: 0;
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 16px;
+  background: var(--navy);
+}
+
+.mission-body {
+  padding: 4px 14px;
+}
+
+.mission-body p {
+  margin: 10px 0 0;
+}
+
+.mission-lead {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.mission-steps {
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+button.big {
+  margin-top: 20px;
+  padding: 14px 40px;
+  font-size: 20px;
+  background: var(--gold);
+  box-shadow: 5px 5px 0 var(--navy);
+}
+
+button.big:hover {
+  background: var(--hot-pink);
+  color: #fff;
+}
+
+.blink {
+  animation: blink 1s steps(2, jump-none) infinite;
+}
+
+@keyframes blink {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blink,
+  .chef-sprite,
+  .chef-eyes-closed,
+  .chef-mini img {
+    animation: none;
+  }
+
+  .chef-mini .chef-mini-arm {
+    opacity: 0;
+  }
+}
+
+.start-chef {
+  text-align: center;
+}
+
+.bubble {
+  position: relative;
+  margin: 0 0 18px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.bubble::after {
+  content: "";
+  position: absolute;
+  bottom: -13px;
+  left: 50%;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-right: 3px solid var(--navy);
+  border-bottom: 3px solid var(--navy);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.chef-large {
+  width: 200px;
+  image-rendering: pixelated;
+}
+
+/* 픽셀 게임처럼 프레임을 끊어서 움직입니다. */
+.chef-sprite {
+  position: relative;
+  width: 200px;
+  margin: 0 auto;
+  animation: chef-bob 1s steps(1, end) infinite;
+}
+
+.chef-sprite img {
+  display: block;
+}
+
+.chef-eyes-closed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  animation: chef-blink 3.5s steps(1, end) infinite;
+}
+
+@keyframes chef-bob {
+  0% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-4px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+  75% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes chef-blink {
+  0% {
+    opacity: 0;
+  }
+  90% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0;
+  }
+}
+
+/* 작은 영양사: 국자 든 팔을 내린 그림과 올린 그림을 번갈아 보여줍니다. */
+.chef-mini {
+  position: relative;
+  width: 64px;
+  flex: none;
+}
+
+.chef-mini img {
+  display: block;
+  width: 100%;
+  image-rendering: pixelated;
+  animation: arm-down 1.2s steps(1, end) infinite;
+}
+
+.chef-mini .chef-mini-arm {
+  position: absolute;
+  top: 0;
+  left: 0;
+  animation-name: arm-up;
+}
+
+@keyframes arm-down {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@keyframes arm-up {
+  0% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.talk {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.talk .speech {
+  flex: 1;
+}
+
 /* 배식대 */
 .counter-label {
   display: inline-block;
-  padding: 2px 10px;
+  padding: 4px 12px;
   color: #fff;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
   background: var(--navy);
 }
 
+.counter-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .counter {
+  flex: 1;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: calc((100% - 40px) / 6); /* 한 번에 6칸, 칸 사이 간격 5개 */
   gap: 8px;
   padding: 10px;
+  overflow-x: hidden;
   background: var(--gray);
   border: 3px solid var(--navy);
 }
 
+.arrow {
+  padding: 0 10px;
+  background: var(--gold);
+}
+
 .food {
   padding: 8px 2px;
-  font-size: 12px;
+  font-size: 14px;
   text-align: center;
   background: #fff;
   border: 2px solid var(--navy);
@@ -130,17 +383,25 @@ button.small {
   user-select: none;
 }
 
-.food .icon {
+.icon {
   display: block;
-  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 4px;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .ghost {
   position: fixed;
   z-index: 10;
-  font-size: 40px;
   pointer-events: none;
   transform: translate(-50%, -50%);
+}
+
+.ghost .icon {
+  width: 64px;
+  height: 64px;
 }
 
 /* 식판 */
@@ -190,8 +451,8 @@ button.small {
 }
 
 .slot .icon {
-  display: block;
-  font-size: 34px;
+  width: 64px;
+  height: 64px;
 }
 
 .slot .remove {
@@ -228,15 +489,35 @@ button.small {
   gap: 8px;
   flex-wrap: wrap;
   margin: 12px 0;
-  font-size: 28px;
 }
 
+.summary .icon {
+  margin: 0;
+}
+
+/* 예측 화면은 글을 읽어야 해서 픽셀 글꼴 대신 일반 글꼴을 씁니다. */
+#screen-predict p,
+#screen-predict button {
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+#screen-predict p {
+  font-size: 17px;
+}
+
+/* 3개 + 2개, 두 줄 모두 가운데 정렬 */
 .choices {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
   max-width: 480px;
   margin: 0 auto;
+}
+
+.choices button {
+  flex: 0 0 calc((100% - 20px) / 3);
+  font-size: 17px;
 }
 
 .choices button.chosen {

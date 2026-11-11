@@ -8,10 +8,45 @@
 </head>
 <body>
   <main class="game">
+    <!-- 시작 화면 -->
+    <section id="screen-start" class="start">
+      <div>
+        <p class="tag"><span class="blink">!</span> 새로운 미션이 도착했어요</p>
+        <h1>오늘의 식판</h1>
+
+        <div class="mission">
+          <h2 class="mission-title">MISSION 01 · 점심 식판을 완성하라</h2>
+          <div class="mission-body">
+            <p class="mission-lead">오늘의 급식 당번은 바로 너!</p>
+            <p>하루에 필요한 영양의 3분의 1을 점심 한 끼에 담아 줘.</p>
+            <ol class="mission-steps">
+              <li>배식대에서 음식을 골라 식판을 채운다</li>
+              <li>가장 부족한 영양소를 예측한다</li>
+              <li>결과를 확인하고 식판을 고친다</li>
+            </ol>
+          </div>
+        </div>
+
+        <button id="start" class="primary big"><span class="blink">▶</span> 미션 시작</button>
+      </div>
+
+      <div class="start-chef">
+        <p class="speech bubble">준비됐니? 배식 시작이야!</p>
+        <div class="chef-sprite">
+          <img class="chef-large" src="assets/chef.png" alt="조리사 복장의 캐릭터">
+          <img class="chef-large chef-eyes-closed" src="assets/chef-blink.png" alt="">
+        </div>
+      </div>
+    </section>
+
     <!-- 화면 1: 식판 담기 -->
-    <section id="screen-tray">
+    <section id="screen-tray" hidden>
       <div class="counter-label">배식대</div>
-      <div id="counter" class="counter"></div>
+      <div class="counter-row">
+        <button id="counter-prev" class="arrow" aria-label="이전 음식 보기">◀</button>
+        <div id="counter" class="counter"></div>
+        <button id="counter-next" class="arrow" aria-label="다음 음식 보기">▶</button>
+      </div>
 
       <div class="tray-area">
         <div>
@@ -29,7 +64,13 @@
             <h2>미션 (쉬움)</h2>
             <p>점심 한 끼를 하루 기준의 3분의 1에 맞춰 채워 보자!</p>
           </div>
-          <p class="speech">👩‍🍳 음식을 끌어다 식판에 놓아 봐. 첫 판은 영양소가 가려져 있어요!</p>
+          <div class="talk">
+            <div class="chef-mini">
+            <img src="assets/chef-mini.png" alt="">
+            <img class="chef-mini-arm" src="assets/chef-mini-arm.png" alt="">
+          </div>
+            <p class="speech">음식을 끌어다 식판에 놓아&nbsp;봐! ◀&nbsp;▶를 누르면 다른 음식도 볼&nbsp;수&nbsp;있어.</p>
+          </div>
           <button id="done" class="primary" disabled>다 담았어요</button>
         </aside>
       </div>
@@ -59,7 +100,13 @@
       </div>
       <div id="gauges"></div>
       <p id="prediction-result" class="box"></p>
-      <p id="result-speech" class="speech"></p>
+      <div class="talk">
+        <div class="chef-mini">
+            <img src="assets/chef-mini.png" alt="">
+            <img class="chef-mini-arm" src="assets/chef-mini-arm.png" alt="">
+          </div>
+        <p id="result-speech" class="speech"></p>
+      </div>
       <div class="actions">
         <button id="fix" class="primary">고치러 가기</button>
         <button id="finish">끝내기</button>

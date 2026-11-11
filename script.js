@@ -2,6 +2,8 @@ const SLOT_COUNT = 5;
 const MIN_SCOOP = 0.5;
 const MAX_SCOOP = 3;
 const SCOOP_STEP = 0.5;
+const COUNTER_GAP = 8; // style.css의 .counter gap과 같은 값
+const COUNTER_STEP = 3; // 화살표를 한 번 누를 때 넘어가는 음식 수
 
 // 게임의 현재 상태. 화면은 항상 이 값을 보고 다시 그립니다.
 let tray = Array(SLOT_COUNT).fill(null); // 칸마다 null 또는 { foodId, scoops }
@@ -12,10 +14,20 @@ const $ = (id) => document.getElementById(id);
 const findFood = (id) => foods.find((food) => food.id === id);
 const filledSlots = () => tray.filter(Boolean);
 
+function foodImage(food) {
+  const image = document.createElement("img");
+  image.className = "icon";
+  image.src = food.image;
+  image.alt = "";
+  image.draggable = false;
+  return image;
+}
+
 function showScreen(name) {
-  for (const screen of ["tray", "predict", "result"]) {
+  for (const screen of ["start", "tray", "predict", "result"]) {
     $(`screen-${screen}`).hidden = screen !== name;
   }
+  if (name === "tray") updateCounterArrows();
 }
 
 /* ---------- 계산 ---------- */
@@ -63,11 +75,25 @@ function renderCounter() {
       const el = document.createElement("div");
       el.className = "food";
       el.dataset.foodId = food.id;
-      el.innerHTML = `<span class="icon">${food.icon}</span>${food.name}`;
+      el.append(foodImage(food), food.name);
       el.addEventListener("pointerdown", (event) => startDrag(event, food));
       return el;
     })
   );
+}
+
+// 배식대 화살표. 숨겨졌던 화면이 다시 나타나면 위치가 처음으로 돌아갑니다.
+function scrollCounter(direction) {
+  const counter = $("counter");
+  const itemWidth = counter.firstElementChild.offsetWidth + COUNTER_GAP;
+  counter.scrollBy({ left: direction * itemWidth * COUNTER_STEP, behavior: "smooth" });
+}
+
+function updateCounterArrows() {
+  const counter = $("counter");
+  const end = counter.scrollWidth - counter.clientWidth;
+  $("counter-prev").disabled = counter.scrollLeft <= 1;
+  $("counter-next").disabled = counter.scrollLeft >= end - 1;
 }
 
 function renderTray() {
@@ -80,7 +106,9 @@ function renderTray() {
 
       if (item) {
         const food = findFood(item.foodId);
-        slot.innerHTML = `<div><span class="icon">${food.icon}</span>${food.name}</div>`;
+        const content = document.createElement("div");
+        content.append(foodImage(food), food.name);
+        slot.append(content);
         slot.addEventListener("click", () => {
           selectedSlot = index;
           renderTray();
@@ -139,7 +167,7 @@ function startDrag(event, food) {
     if (!ghost && moved) {
       ghost = document.createElement("div");
       ghost.className = "ghost";
-      ghost.textContent = food.icon;
+      ghost.append(foodImage(food));
       document.body.append(ghost);
     }
     if (!ghost) return;
@@ -174,9 +202,7 @@ function startDrag(event, food) {
 
 function openPredict() {
   prediction = null;
-  $("tray-summary").textContent = filledSlots()
-    .map((item) => findFood(item.foodId).icon)
-    .join(" ");
+  $("tray-summary").replaceChildren(...filledSlots().map((item) => foodImage(findFood(item.foodId))));
   renderChoices();
   showScreen("predict");
 }
@@ -240,7 +266,7 @@ function showResult() {
 
   $("prediction-result").textContent =
     `내 예측: ${predicted.label} · 실제로 가장 부족: ${lowest.label} ${correct ? "(맞았어요!)" : "(아쉬워요!)"}`;
-  $("result-speech").textContent = `👩‍🍳 가장 모자란 건 ${lowest.label}! ${lowest.hint}`;
+  $("result-speech").textContent = `가장 모자란 건 ${lowest.label}! ${lowest.hint}`;
   showScreen("result");
 }
 
@@ -251,9 +277,13 @@ function resetGame() {
   selectedSlot = null;
   prediction = null;
   renderTray();
-  showScreen("tray");
+  showScreen("start");
 }
 
+$("start").addEventListener("click", () => showScreen("tray"));
+$("counter-prev").addEventListener("click", () => scrollCounter(-1));
+$("counter-next").addEventListener("click", () => scrollCounter(1));
+$("counter").addEventListener("scroll", updateCounterArrows);
 $("scoop-minus").addEventListener("click", () => changeScoop(-SCOOP_STEP));
 $("scoop-plus").addEventListener("click", () => changeScoop(SCOOP_STEP));
 $("done").addEventListener("click", openPredict);
