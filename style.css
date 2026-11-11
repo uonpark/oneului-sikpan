@@ -500,14 +500,17 @@ button.big:hover {
   margin: 0;
 }
 
-/* 예측 화면은 글을 읽어야 해서 픽셀 글꼴 대신 일반 글꼴을 씁니다. */
+/* 안내 문구와 영양소 표기는 출처 문구와 같은 갈무리 보통 굵기로 통일합니다. */
 #screen-predict p,
-#screen-predict button {
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+#screen-predict button,
+.ratio-table,
+.gauge-name small {
+  font-family: "Galmuri11", "Apple SD Gothic Neo", sans-serif;
+  font-weight: 400;
 }
 
 #screen-predict p {
-  font-size: 17px;
+  font-size: 15px;
 }
 
 /* 3개 + 2개, 두 줄 모두 가운데 정렬 */
@@ -522,7 +525,7 @@ button.big:hover {
 
 .choices button {
   flex: 0 0 calc((100% - 20px) / 3);
-  font-size: 17px;
+  font-size: 15px;
 }
 
 .choices button.chosen {
@@ -591,8 +594,7 @@ button.big:hover {
 
 .ratio-table {
   border-collapse: collapse;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .ratio-table th,
@@ -610,7 +612,6 @@ button.big:hover {
 .gauge-name small {
   display: block;
   margin-top: 2px;
-  font-family: "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   font-size: 13px;
   font-weight: 400;
   opacity: 0.8;
