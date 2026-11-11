@@ -9,6 +9,8 @@ const COUNTER_STEP = 3; // 화살표를 한 번 누를 때 넘어가는 음식 �
 let tray = Array(SLOT_COUNT).fill(null); // 칸마다 null 또는 { foodId, scoops }
 let selectedSlot = null;
 let prediction = null;
+let lastResult = null; // 고치기 전 결과. 고친 뒤 결과와 비교할 때 씁니다.
+let attempt = 0; // 이번 판에서 결과를 본 횟수
 
 const $ = (id) => document.getElementById(id);
 const findFood = (id) => foods.find((food) => food.id === id);
@@ -24,7 +26,7 @@ function foodImage(food) {
 }
 
 function showScreen(name) {
-  for (const screen of ["start", "tray", "predict", "result"]) {
+  for (const screen of ["start", "tray", "predict", "result", "calendar", "day"]) {
     $(`screen-${screen}`).hidden = screen !== name;
   }
   if (name === "tray") updateCounterArrows();
@@ -44,12 +46,15 @@ function sumNutrients() {
   return total;
 }
 
-const achievement = (total, key) => total[key] / mealTarget[key];
+const achievement = (total, key) => total[key] / mealTargets[key].min;
 
-function findLowestNutrient(total) {
-  return nutrientChoices.reduce((lowest, choice) =>
-    achievement(total, choice.key) < achievement(total, lowest.key) ? choice : lowest
-  );
+// '부족' 판정을 받은 영양소를 모두 찾습니다. 없으면 '조금 부족'을 찾습니다.
+function findLacking(total) {
+  const judged = nutrientChoices.map((choice) => ({ choice, ...judge(total[choice.key], mealTargets[choice.key]) }));
+  const lacking = judged.filter((n) => n.status === "부족");
+  const partly = judged.filter((n) => n.status === "조금 부족");
+  const tooMuch = judged.filter((n) => n.status === "많음");
+  return { lacking: lacking.length ? lacking : partly, severe: lacking.length > 0, tooMuch };
 }
 
 function energyRatio(total) {
@@ -60,11 +65,19 @@ function energyRatio(total) {
   return { carb: (carb / sum) * 100, protein: (protein / sum) * 100, fat: (fat / sum) * 100 };
 }
 
-function gaugeStatus(rate) {
-  if (rate > 1.2) return "많음";
+// 게이지 상태. 표와 같은 기준(60% 미만 부족, 90% 미만 조금 부족)을 씁니다.
+// '많음'은 에너지 게이지에만 씁니다 (한 끼 필요량의 1.2배 초과).
+function gaugeStatus(rate, index) {
+  if (index === 0 && rate > 1.2) return "많음";
   if (rate >= 0.9) return "충분";
   if (rate >= 0.6) return "조금 부족";
   return "부족";
+}
+
+// 받침이 있으면 "은", 없으면 "는"
+function topicParticle(word) {
+  const code = word.charCodeAt(word.length - 1) - 0xac00;
+  return code >= 0 && code < 11172 && code % 28 !== 0 ? "은" : "는";
 }
 
 /* ---------- 화면 1: 식판 담기 ---------- */
@@ -121,6 +134,7 @@ function renderTray() {
         remove.addEventListener("click", (event) => {
           event.stopPropagation();
           tray[index] = null;
+          Sound.play("remove");
           if (selectedSlot === index) selectedSlot = null;
           renderTray();
         });
@@ -142,6 +156,7 @@ function renderTray() {
 }
 
 function placeFood(food, index) {
+  Sound.play("drop");
   tray[index] = { foodId: food.id, scoops: 1 };
   selectedSlot = index;
   renderTray();
@@ -149,6 +164,7 @@ function placeFood(food, index) {
 
 function changeScoop(delta) {
   tray[selectedSlot].scoops += delta;
+  Sound.play(delta > 0 ? "up" : "down");
   renderTray();
 }
 
@@ -169,6 +185,7 @@ function startDrag(event, food) {
       ghost.className = "ghost";
       ghost.append(foodImage(food));
       document.body.append(ghost);
+      Sound.play("pick");
     }
     if (!ghost) return;
 
@@ -215,6 +232,7 @@ function renderChoices() {
       button.classList.toggle("chosen", prediction === choice.id);
       button.addEventListener("click", () => {
         prediction = choice.id;
+        Sound.play("select");
         renderChoices();
       });
       return button;
@@ -230,62 +248,137 @@ function donutStyle(ratio) {
   return `conic-gradient(var(--carb) 0 ${ratio.carb}%, var(--protein) 0 ${proteinEnd}%, var(--fat) 0 100%)`;
 }
 
-function renderRatioRows(mine) {
+function renderRatioRows(mine, previous) {
   const rows = [
     { key: "carb", label: "탄수화물" },
     { key: "protein", label: "단백질" },
     { key: "fat", label: "지방" },
   ];
+  $("ratio-prev-head").hidden = !previous;
   $("ratio-rows").replaceChildren(
     ...rows.map(({ key, label }) => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td><i class="dot ${key}"></i>${label}</td><td>${Math.round(mine[key])}%</td><td>${idealRatio[key]}%</td>`;
+      const prevCell = previous ? `<td class="prev">${Math.round(previous[key])}%</td>` : "";
+      tr.innerHTML = `<td><i class="dot ${key}"></i>${label}</td>${prevCell}<td>${Math.round(mine[key])}%</td><td>${energyRange[key][0]}~${energyRange[key][1]}%</td>`;
       return tr;
     })
   );
 }
 
-function renderGauges(total) {
+function gaugeRates(total) {
+  return [
+    achievement(total, "energy"),
+    // 한쪽이 넘쳐도 다른 쪽의 부족을 가리지 않도록 각각 100%까지만 셉니다.
+    (Math.min(achievement(total, "protein"), 1) + Math.min(achievement(total, "calcium"), 1)) / 2,
+    achievement(total, "vitaminC"),
+  ];
+}
+
+function renderGauges(rates, previousRates) {
   const gauges = [
-    { label: "에너지 공급", nutrients: "탄수화물 · 단백질 · 지방", rate: achievement(total, "energy"), color: "var(--gold)" },
-    {
-      label: "몸의 조직 구성",
-      nutrients: "단백질 · 무기질(칼슘)",
-      // 한쪽이 넘쳐도 다른 쪽의 부족을 가리지 않도록 각각 100%까지만 셉니다.
-      rate: (Math.min(achievement(total, "protein"), 1) + Math.min(achievement(total, "calcium"), 1)) / 2,
-      color: "#8e6be8",
-    },
-    { label: "생리 기능 조절", nutrients: "비타민(비타민 C)", rate: achievement(total, "vitaminC"), color: "var(--green)" },
+    { label: "에너지 공급", nutrients: "탄수화물 · 단백질 · 지방", color: "var(--gold)" },
+    { label: "몸의 조직 구성", nutrients: "단백질 · 무기질(칼슘)", color: "#8e6be8" },
+    { label: "생리 기능 조절", nutrients: "비타민(비타민 C)", color: "var(--green)" },
   ];
 
   $("gauges").replaceChildren(
-    ...gauges.map(({ label, nutrients, rate, color }) => {
+    ...gauges.map(({ label, nutrients, color }, i) => {
+      const rate = rates[i];
       const row = document.createElement("div");
       row.className = "gauge";
+      let status = gaugeStatus(rate, i);
+      let marker = "";
+      if (previousRates) {
+        const before = previousRates[i];
+        marker = `<div class="prev-mark" style="left:${Math.min(before, 1) * 100}%" title="고치기 전"></div>`;
+        status = `${gaugeStatus(before, i)} → ${status} ${changeArrow(before, rate)}`;
+      }
       row.innerHTML = `<span class="gauge-name">${label}<small>${nutrients}</small></span>
-        <div class="bar"><div class="fill" style="width:${Math.min(rate, 1) * 100}%;background:${color}"></div></div>
-        <span>${gaugeStatus(rate)}</span>`;
+        <div class="bar"><div class="fill" style="width:${Math.min(rate, 1) * 100}%;background:${color}"></div>${marker}</div>
+        <span class="gauge-status">${status}</span>`;
       return row;
     })
   );
 }
 
+// 기준(100%)에 가까워졌으면 ▲, 멀어졌으면 ▼
+function changeArrow(before, after) {
+  const distance = (rate) => Math.abs(1 - Math.min(rate, 1.2));
+  const diff = distance(before) - distance(after);
+  if (Math.abs(diff) < 0.02) return "＝";
+  return diff > 0 ? "▲" : "▼";
+}
+
 function showResult() {
   const total = sumNutrients();
-  const lowest = findLowestNutrient(total);
+  const { lacking, severe, tooMuch } = findLacking(total);
   const predicted = nutrientChoices.find((choice) => choice.id === prediction);
-  const correct = predicted.id === lowest.id;
+  const correct = lacking.some((n) => n.choice.id === predicted.id);
+  const lackingNames = lacking.map((n) => n.choice.label).join(" · ");
 
   const mine = energyRatio(total);
+  const rates = gaugeRates(total);
+  const previous = lastResult;
+  attempt += 1;
+
   $("donut-mine").style.background = donutStyle(mine);
   $("donut-ideal").style.background = donutStyle(idealRatio);
-  renderRatioRows(mine);
-  renderGauges(total);
+  $("donut-mine-caption").textContent = attempt > 1 ? `고친 식판 (${attempt}번째)` : "내 식판";
+  renderRatioRows(mine, previous?.ratio);
+  renderGauges(rates, previous?.rates);
+  renderNutrientRows(total);
+  $("compare-note").hidden = !previous;
+  $("compare-note").textContent = previous ? `고치기 전과 비교: ${compareSummary(previous.rates, rates)}` : "";
 
-  $("prediction-result").textContent =
-    `내 예측: ${predicted.label} · 실제로 가장 부족: ${lowest.label} ${correct ? "(맞았어요!)" : "(아쉬워요!)"}`;
-  $("result-speech").textContent = `가장 모자란 건 ${lowest.label}! ${lowest.hint}`;
+  const word = severe ? "부족" : "조금 부족";
+  $("prediction-result").textContent = lacking.length
+    ? `내 예측: ${predicted.label} · ${word}한 영양소: ${lackingNames} ${correct ? "(맞았어요!)" : "(아쉬워요!)"}`
+    : `내 예측: ${predicted.label} · 부족한 영양소가 없어요!`;
+  const muchNames = tooMuch.map((n) => n.choice.label).join(" · ");
+  const extra = tooMuch.length ? ` ${muchNames}${topicParticle(muchNames)} 너무 많아.` : "";
+  $("result-speech").textContent = lacking.length
+    ? `${word}한 건 ${lackingNames}! ${lacking[0].choice.hint}${extra}`
+    : `5대 영양소를 모두 챙긴 균형 잡힌 식판이야!${extra}`;
+  lastResult = { ratio: mine, rates };
   showScreen("result");
+  Sound.play(correct ? "correct" : "wrong");
+}
+
+// 결과 화면의 5대 영양소 표: 담은 양, 한 끼 기준, 상태
+const NUTRIENT_ROWS = [
+  { key: "carb", label: "탄수화물", unit: "g" },
+  { key: "protein", label: "단백질", unit: "g" },
+  { key: "fat", label: "지방", unit: "g" },
+  { key: "calcium", label: "무기질(칼슘)", unit: "mg" },
+  { key: "vitaminC", label: "비타민(비타민 C)", unit: "mg" },
+];
+
+function targetText(target, unit) {
+  const min = Math.round(target.min);
+  return target.max !== null && unit === "g" ? `${min}~${Math.round(target.max)} ${unit}` : `${min} ${unit} 이상`;
+}
+
+function amountText1(value) {
+  return value < 10 ? value.toFixed(1) : String(Math.round(value));
+}
+
+function renderNutrientRows(total) {
+  $("nutrient-rows").replaceChildren(
+    ...NUTRIENT_ROWS.map(({ key, label, unit }) => {
+      const { rate, status } = judge(total[key], mealTargets[key]);
+      const tr = document.createElement("tr");
+      tr.className = `status-${status.replace(" ", "-")}`;
+      tr.innerHTML = `<td>${label}</td><td>${amountText1(total[key])} ${unit}</td><td>${targetText(mealTargets[key], unit)}</td><td>${Math.round(rate * 100)}% · <b>${status}</b></td>`;
+      return tr;
+    })
+  );
+}
+
+function compareSummary(before, after) {
+  const better = after.filter((rate, i) => changeArrow(before[i], rate) === "▲").length;
+  if (better === 3) return "세 게이지가 모두 기준에 가까워졌어요! 👍";
+  if (better > 0) return `게이지 ${better}개가 기준에 가까워졌어요. 표시선(┃)이 고치기 전 위치예요.`;
+  return "아직 나아진 게이지가 없어요. 표시선(┃)이 고치기 전 위치예요.";
 }
 
 /* ---------- 시작 ---------- */
@@ -294,20 +387,40 @@ function resetGame() {
   tray = Array(SLOT_COUNT).fill(null);
   selectedSlot = null;
   prediction = null;
+  lastResult = null;
+  attempt = 0;
   renderTray();
   showScreen("start");
 }
 
-$("start").addEventListener("click", () => showScreen("tray"));
-$("counter-prev").addEventListener("click", () => scrollCounter(-1));
-$("counter-next").addEventListener("click", () => scrollCounter(1));
+$("start").addEventListener("click", () => {
+  Sound.play("start");
+  showScreen("tray");
+});
+$("counter-prev").addEventListener("click", () => {
+  Sound.play("click");
+  scrollCounter(-1);
+});
+$("counter-next").addEventListener("click", () => {
+  Sound.play("click");
+  scrollCounter(1);
+});
 $("counter").addEventListener("scroll", updateCounterArrows);
 $("scoop-minus").addEventListener("click", () => changeScoop(-SCOOP_STEP));
 $("scoop-plus").addEventListener("click", () => changeScoop(SCOOP_STEP));
-$("done").addEventListener("click", openPredict);
+$("done").addEventListener("click", () => {
+  Sound.play("click");
+  openPredict();
+});
 $("show-result").addEventListener("click", showResult);
-$("fix").addEventListener("click", () => showScreen("tray")); // 담은 식판을 그대로 두고 돌아갑니다.
-$("finish").addEventListener("click", resetGame);
+$("fix").addEventListener("click", () => {
+  Sound.play("click");
+  showScreen("tray"); // 담은 식판을 그대로 두고 돌아갑니다.
+});
+$("finish").addEventListener("click", () => {
+  Sound.play("click");
+  resetGame();
+});
 
 renderCounter();
 resetGame();
